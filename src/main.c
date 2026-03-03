@@ -1,27 +1,63 @@
-#include "vector.h"
-#include "matrix.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "dot.h"
+#include "ffnn.h"
+#include "vector.h"
+
+typedef enum
+{
+    ARGS_RUN = 1,
+    ARGS_CREATE = 2,
+    ARGS_TRAIN = 4,
+    ARGS_DATASET = 8,
+    ARGS_OUTPUT = 16,
+    ARGS_NETWORK = 32,
+} args;
 
 int main(int argc, char const *argv[])
 {
-    double data_1[] = {
-        1.0, 2.0,
-        3.0, 4.0};
+    uint8_t args = 0;
 
-    matrix_t a = mat_from_array(data_1, 2, 2);
-
-    double data_2[] = {5.0, 6.0, 7.0, 8.0};
-    matrix_t b = mat_from_array(data_2, 2, 2);
-
-    matrix_t product = mat_mul(&a, &b);
-
-    for (int i = 0; i < a.rows; i++)
+    for (int i = 0; i < argc; i++)
     {
-        for (int j = 0; j < a.columns; j++)
+        if (argv[i] == "-r" || argv[i] == "--run")
         {
-            printf("%f\n", *mat_get(&product, i, j));
+            args += ARGS_RUN;
+        }
+        
+        else if (argv[i] == "-c" || argv[i] == "--create")
+        {
+            args += ARGS_CREATE;
+        }
+        
+        else if (argv[i] == "-t" || argv[i] == "--train")
+        {
+            args += ARGS_TRAIN;
+        }
+        
+        else if (argv[i] == "-d" || argv[i] == "--data" || argv[i] == "--dataset")
+        {
+            args += ARGS_DATASET;
+        }
+        
+        else if (argv[i] == "-o" || argv[i] == "--out" || argv[i] == "--output")
+        {
+            args += ARGS_OUTPUT;
+        }
+        
+        else if (argv[i] == "-n" || argv[i] == "--net" || argv[i] == "--network")
+        {
+            args += ARGS_NETWORK;
         }
     }
+
+    if (args && ARGS_CREATE && ARGS_TRAIN)
+    {
+        fprintf(stderr, "Invalid argument combination");
+        return -1;
+    }
+    
 
     return 0;
 }

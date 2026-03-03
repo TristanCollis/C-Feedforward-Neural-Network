@@ -56,7 +56,7 @@ matrix_t mat_from_array(double data[], size_t rows, size_t columns)
 
 matrix_t mat_map(matrix_t *mat, double (*func)(double))
 {
-    matrix_t out = mat_new()(mat->rows, mat->columns);
+    matrix_t out = mat_new(mat->rows, mat->columns);
     for (size_t i = 0; i < mat->rows; i++)
     {
         for (size_t j = 0; j < mat->columns; j++)

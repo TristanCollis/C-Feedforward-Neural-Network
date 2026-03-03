@@ -8,7 +8,7 @@ typedef struct layer_t
 {
     matrix_t weights;
     matrix_t biases;
-}
+} layer_t;
 
 
 #endif
