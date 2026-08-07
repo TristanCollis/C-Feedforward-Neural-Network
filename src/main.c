@@ -1,135 +1,144 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
 #include <string.h>
-#include <ctype.h>
+#include <math.h>
+
+#include "matrix.h"
 #include "ffnn.h"
-#include "vector.h"
+#include "utils.h"
+#include "argparse.h"
 
-#define perror(str) fprintf(stderr, str)
+#define PI 3.141592653589793238462643383279502884197
 
-typedef enum
+void setup()
 {
-    ARGS_RUN = 1,
-    ARGS_CREATE = 2,
-    ARGS_TRAIN = 4,
-    ARGS_DATASET = 8,
-    ARGS_OUTPUT = 16,
-    ARGS_NETWORK = 32,
-} args;
+    srand(time(NULL));
+    rand();
+}
 
-int main(int argc, char *argv[])
+ffnn_t *create()
 {
-    uint8_t args = 0;
-    uint32_t *nn_shape;
-    char *nn_name;
+    uint32_t layer_sizes[] = {1, 8, 8, 8, 1};
 
-    ffnn_t *model;
+    ffnn_t *nn = ffnn_rand(
+        1, 
+        5, 
+        layer_sizes, 
+        -1.0, 
+        1.0
+    );
+   
+    return nn;
+}
 
-    for (uint32_t i = 0; (int)i < argc; i++)
+ffnn_t *open()
+{
+    FILE *file;
+    fopen_s(&file, "./target/model.nn", "rb");
+    ffnn_t *nn = ffnn_fread(file);
+    fclose(file);
+    return nn;
+}
+
+void train(ffnn_t *nn)
+{
+    matrix_t **inputs = malloc(100 * sizeof(matrix_t));
+    matrix_t **outputs = malloc(100 * sizeof(matrix_t));
+
+    for (size_t i = 0; i < 100; i++)
     {
-        if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--run") == 0)
-        {
-            args |= ARGS_RUN;
-        }
-
-        else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--create") == 0)
-        {
-            args |= ARGS_CREATE;
-
-            if ((int)i >= argc)
-            {
-                perror("No value provided for argument");
-                return -1;
-            }
-
-            uint32_t layer_count = 0;
-            bool last_is_digit = false;
-            for (uint32_t j = 0; j < strlen(argv[i + 2]); j++)
-            {
-                if (last_is_digit && !isdigit(argv[i + 2][j]))
-                {
-                    last_is_digit = false;
-                }
-
-                if (!last_is_digit && isdigit(argv[i + 2][j]))
-                {
-                    last_is_digit = true;
-                    layer_count++;
-                }
-            }
-
-            nn_shape = calloc(layer_count, sizeof(uint32_t));
-
-            uint32_t k = 0;
-            last_is_digit = false;
-            for (uint32_t j = 0; j < strlen(argv[i + 2]); j++)
-            {
-                if (last_is_digit && !isdigit(argv[i + 2][j]))
-                {
-                    last_is_digit = false;
-                    k++;
-                }
-
-                if (!last_is_digit && isdigit(argv[i + 2][j]))
-                {
-                    last_is_digit = true;
-                    nn_shape[k] += atoi(&argv[i + 2][j]);
-                }
-            }
-
-            nn_name = argv[i + 1];
-
-
-
-            for (uint32_t j = 0; j < layer_count; j++)
-            {
-                printf("%d\n", nn_shape[j]);
-            }
-        }
-
-        else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--train") == 0)
-        {
-            args += ARGS_TRAIN;
-        }
-
-        else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--data") || strcmp(argv[i], "--dataset") == 0)
-        {
-            args += ARGS_DATASET;
-        }
-
-        else if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "--output") == 0)
-        {
-            args += ARGS_OUTPUT;
-        }
-
-        else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--net") == 0 || strcmp(argv[i], "--network") == 0)
-        {
-            args += ARGS_NETWORK;
-        }
+        inputs[i] = mat_randrange(1, 1, -PI, PI);
+        outputs[i] = mat_new(1, 1);
+        outputs[i]->data[0][0] = (sin(2 * inputs[i]->data[0][0]) + 1.0) / 2.0; // training data must be normalized on [0.0, 1.0]
     }
-
-    if (((args & ARGS_TRAIN) && (args & ARGS_RUN)) || ((args & ARGS_CREATE) && (args & ARGS_NETWORK)))
+    
+    for (size_t i = 0; i < 10000; i++)
     {
-        perror("Invalid argument combination");
-        return -1;
+        ffnn_train_epoch(nn, 100, inputs, outputs, 100, 0.1);
     }
+}
 
-    if (args & ARGS_CREATE) 
+void save(ffnn_t *nn)
+{
+    FILE *file;
+    fopen_s(&file, "./target/model.nn", "wb");
+    ffnn_fwrite(nn, file);
+    fclose(file);
+}
+
+void run(ffnn_t *nn)
+{
+    for (size_t i = 0; i < 100; i++)
     {
-        // FILE *fptr = fopen("./file.nn", "w");
-        // fwrite(&num, sizeof(uint32_t), 1, fptr);
-        // fprintf(fptr, "Bleh");
-        // fclose(fptr);
-    }
+        matrix_t *input = mat_new(1, 1);
+        input->data[0][0] = (((double) i) * 2.0 * PI / 100.0) - PI;
+        printf("%f, ", input->data[0][0]);
+        matrix_t *output = ffnn_eval(nn, input);
+        printf("%f\n", output->data[0][0] * 2 - 1);
 
-    return 0;
+        mat_free(output);
+        mat_free(input);
+    }
 }
 
 
-// data binary layout:
-// Header: u32 - number of layers
-// layer:
-//      sub-header: u32 - size of layer
-//      array of doubles
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
+        return 0;
+    }
+
+    setup();
+
+    if (strcmp(argv[1], "-c") == 0)
+    {
+        ffnn_t *nn = create();
+        ffnn_print(nn);
+        save(nn);
+        ffnn_free(nn);
+    }
+
+    if (strcmp(argv[1], "-t") == 0)
+    {
+        ffnn_t *nn = open();
+        train(nn);
+        save(nn);
+        ffnn_free(nn);
+    }
+
+    if (strcmp(argv[1], "-r") == 0)
+    {
+        ffnn_t *nn = open();
+        run(nn);
+        ffnn_free(nn);
+    }
+
+    if (strcmp(argv[1], "-v") == 0)
+    {
+        ffnn_t *nn = open();
+
+        ffnn_print(nn);
+        ffnn_free(nn);
+    }
+
+    if (strcmp(argv[1], "-rv") == 0)
+    {
+        ffnn_t *nn = open();
+
+        matrix_t *input = mat_new(1, 1);
+        input->data[0][0] = -1.0;
+        
+        matrix_t *out = ffnn_eval_full(nn, input);
+
+        mat_print(out);
+
+        mat_free(input);
+        mat_free(out);
+    }
+    
+    return 0;
+}
+
