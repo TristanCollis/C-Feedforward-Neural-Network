@@ -8,8 +8,8 @@
 typedef struct vec_t
 {
     double *_data;
-    size_t _length;
-    size_t _capacity;
+    uint32_t _length;
+    uint32_t _capacity;
 } vec_t;
 
 vec_t vec_new();

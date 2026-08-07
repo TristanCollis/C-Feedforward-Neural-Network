@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-double dot(double a[], double b[], size_t length)
+double dot(double a[], double b[], uint32_t length)
 {
     double result = 0;
 

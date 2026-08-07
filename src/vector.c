@@ -1,6 +1,6 @@
 #include "vector.h"
 
-static const size_t DEFAULT_CAPACITY = 4;
+static const uint32_t DEFAULT_CAPACITY = 4;
 
 vec_t vec_new()
 {
